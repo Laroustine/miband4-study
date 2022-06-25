@@ -16,8 +16,10 @@ from constants import MUSICSTATE
 from miband import miband
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--mac', required=False, help='Set mac address of the device')
-parser.add_argument('-k', '--authkey', required=False, help='Set Auth Key for the device')
+parser.add_argument('-m', '--mac', required=False,
+                    help='Set mac address of the device')
+parser.add_argument('-k', '--authkey', required=False,
+                    help='Set Auth Key for the device')
 args = parser.parse_args()
 
 # Try to obtain MAC from the file
@@ -63,7 +65,7 @@ else:
     print("  To use additional features of this script please put your Auth Key to 'auth_key.txt' or pass the --authkey option with your Auth Key")
     print()
     AUTH_KEY = None
-    
+
 # Validate Auth Key
 if AUTH_KEY:
     if 1 < len(AUTH_KEY) != 32:
@@ -77,46 +79,48 @@ if AUTH_KEY:
     AUTH_KEY = bytes.fromhex(AUTH_KEY)
 
 # Needs Auth
+
+
 def get_step_count():
     binfo = band.get_steps()
-    print ('Number of steps: ', binfo['steps'])
-    print ('Fat Burned: ', binfo['fat_burned'])
-    print ('Calories: ', binfo['calories'])
-    print ('Distance travelled in meters: ', binfo['meters'])
+    print('Number of steps: ', binfo['steps'])
+    print('Fat Burned: ', binfo['fat_burned'])
+    print('Calories: ', binfo['calories'])
+    print('Distance travelled in meters: ', binfo['meters'])
     input('Press a key to continue')
 
 
 def general_info():
-    print ('MiBand')
-    print ('Soft revision:',band.get_revision())
-    print ('Hardware revision:',band.get_hrdw_revision())
-    print ('Serial:',band.get_serial())
-    print ('Battery:', band.get_battery_info()['level'])
-    print ('Time:', band.get_current_time()['date'].isoformat())
+    print('MiBand')
+    print('Soft revision:', band.get_revision())
+    print('Hardware revision:', band.get_hrdw_revision())
+    print('Serial:', band.get_serial())
+    print('Battery:', band.get_battery_info()['level'])
+    print('Time:', band.get_current_time()['date'].isoformat())
     input('Press a key to continue')
 
 
 def send_notif():
-    title = input ("Enter title or phone number to be displayed: ")
-    print ('Reminder: at Mi Band 4 you have 10 characters per line, and up to 6 lines. To add a new line use new line character \n')
-    msg = input ("Enter optional message to be displayed: ")
-    ty= int(input ("1 for Mail / 2 for Message / 3 for Missed Call / 4 for Call: "))
+    title = input("Enter title or phone number to be displayed: ")
+    print('Reminder: at Mi Band 4 you have 10 characters per line, and up to 6 lines. To add a new line use new line character \n')
+    msg = input("Enter optional message to be displayed: ")
+    ty = int(input("1 for Mail / 2 for Message / 3 for Missed Call / 4 for Call: "))
     if(ty > 4 or ty < 1):
-        print ('Invalid choice')
+        print('Invalid choice')
         time.sleep(2)
         return
-    a=[1,5,4,3]
-    band.send_custom_alert(a[ty-1],title,msg)
+    a = [1, 5, 4, 3]
+    band.send_custom_alert(a[ty-1], title, msg)
 
 
 # Needs Auth
 def get_heart_rate():
-    print ('Latest heart rate is : %i' % band.get_heart_rate_one_time())
+    print(f'Latest heart rate is : {band.get_heart_rate_one_time()}')
     input('Press a key to continue')
 
 
 def heart_logger(data):
-    print ('Realtime heart BPM:', data)
+    print('Realtime heart BPM:', data)
 
 
 # Needs Auth
@@ -131,48 +135,63 @@ def restore_firmware():
     path = input("Enter the path of the firmware file :")
     band.dfuUpdate(path)
 
+
 # Needs Auth
 def update_watchface():
     path = input("Enter the path of the watchface .bin file :")
     band.dfuUpdate(path)
 
 
-
 # Needs Auths
 def set_time():
     now = datetime.now()
-    print ('Set time to:', now)
+    print('Set time to:', now)
     band.set_current_time(now)
 
 
-# default callbacks        
+# default callbacks
 def _default_music_play():
     print("Played")
+
+
 def _default_music_pause():
     print("Paused")
+
+
 def _default_music_forward():
     print("Forward")
+
+
 def _default_music_back():
     print("Backward")
+
+
 def _default_music_vup():
     print("volume up")
+
+
 def _default_music_vdown():
     print("volume down")
+
+
 def _default_music_focus_in():
     print("Music focus in")
+
+
 def _default_music_focus_out():
-    print("Music focus out")    
+    print("Music focus out")
 
 
-def set_music(): 
-    band.setMusicCallback(_default_music_play,_default_music_pause,_default_music_forward,_default_music_back,_default_music_vup,_default_music_vdown,_default_music_focus_in,_default_music_focus_out)
+def set_music():
+    band.setMusicCallback(_default_music_play, _default_music_pause, _default_music_forward, _default_music_back,
+                          _default_music_vup, _default_music_vdown, _default_music_focus_in, _default_music_focus_out)
     fi = input("Set music track artist to : ")
     fj = input("Set music track album to: ")
     fk = input("Set music track title to: ")
     fl = int(input("Set music volume: "))
     fm = int(input("Set music position: "))
     fn = int(input("Set music duration: "))
-    band.setTrack(MUSICSTATE.PLAYED,fi,fj,fk,fl,fm,fn)
+    band.setTrack(MUSICSTATE.PLAYED, fi, fj, fk, fl, fm, fn)
     while True:
         if band.waitForNotifications(0.5):
             continue
@@ -206,16 +225,19 @@ def lost_device():
     input("enter any key")
 
 
-def activity_log_callback(timestamp,c,i,s,h):
-    print("{}: category: {}; intensity {}; steps {}; heart rate {};\n".format( timestamp.strftime('%d.%m - %H:%M'), c, i ,s ,h))
+def activity_log_callback(timestamp, c, i, s, h):
+    print(f"{timestamp.strftime('%y-%m-%d - %H:%M')}: category: {c}; intensity {i}; steps {s}; heart rate {h};")
 
-#Needs auth    
+
+# Needs auth
 def get_activity_logs():
-    #gets activity log for this day.
+    # gets activity log for this day.
     temp = datetime.now()
-    band.get_activity_betwn_intervals(datetime(temp.year,temp.month,temp.day),datetime.now(),activity_log_callback)
+    band.get_activity_betwn_intervals(datetime(
+        temp.year, temp.month, temp.day), datetime.now(), activity_log_callback)
     while True:
         band.waitForNotifications(0.2)
+
 
 if __name__ == "__main__":
     success = False
@@ -235,20 +257,29 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print("\nExit.")
             exit()
-        
+
     menu = CursesMenu("MIBand4", "Features marked with @ require Auth Key")
     info_item = FunctionItem("Get general info of the device", general_info)
-    call_item = FunctionItem("Send Mail/ Call/ Missed Call/ Message", send_notif)
-    set_music_item = FunctionItem("Set the band's music and receive music controls", set_music)
-    lost_device_item = FunctionItem("Listen for Device Lost notifications", lost_device)
-    steps_item = FunctionItem("@ Get Steps/Meters/Calories/Fat Burned", get_step_count)
+    call_item = FunctionItem(
+        "Send Mail/ Call/ Missed Call/ Message", send_notif)
+    set_music_item = FunctionItem(
+        "Set the band's music and receive music controls", set_music)
+    lost_device_item = FunctionItem(
+        "Listen for Device Lost notifications", lost_device)
+    steps_item = FunctionItem(
+        "@ Get Steps/Meters/Calories/Fat Burned", get_step_count)
     single_heart_rate_item = FunctionItem("@ Get Heart Rate", get_heart_rate)
-    real_time_heart_rate_item = FunctionItem("@ Get realtime heart rate data", get_realtime)
-    get_band_activity_data_item = FunctionItem("@ Get activity logs for a day", get_activity_logs)
-    set_time_item= FunctionItem("@ Set the band's time to system time", set_time)
-    update_watchface_item = FunctionItem("@ Update Watchface", update_watchface)
-    dfu_update_item = FunctionItem("@ Restore/Update Firmware", restore_firmware)
-    
+    real_time_heart_rate_item = FunctionItem(
+        "@ Get realtime heart rate data", get_realtime)
+    get_band_activity_data_item = FunctionItem(
+        "@ Get activity logs for a day", get_activity_logs)
+    set_time_item = FunctionItem(
+        "@ Set the band's time to system time", set_time)
+    update_watchface_item = FunctionItem(
+        "@ Update Watchface", update_watchface)
+    dfu_update_item = FunctionItem(
+        "@ Restore/Update Firmware", restore_firmware)
+
     menu.append_item(info_item)
     menu.append_item(steps_item)
     menu.append_item(call_item)
