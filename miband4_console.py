@@ -6,7 +6,9 @@ import argparse
 import subprocess
 import shutil
 import time
+import csv
 from datetime import datetime
+from os.path import isfile
 
 from bluepy.btle import BTLEDisconnectError
 from cursesmenu import *
@@ -20,6 +22,12 @@ parser.add_argument('-m', '--mac', required=False,
                     help='Set mac address of the device')
 parser.add_argument('-k', '--authkey', required=False,
                     help='Set Auth Key for the device')
+parser.add_argument('-c', '--csv', required=False, default="heart-current",
+                    help='Set csv file name')
+parser.add_argument('-f', '--format', required=False, default="%m-%d_%H:%M:%S",
+                    help='Set the time format for the csv')
+parser.add_argument('-o', '--onlyheart', required=False, action='store_true',
+                    help='Only activates the option for realtime heart rate data')
 args = parser.parse_args()
 
 # Try to obtain MAC from the file
@@ -119,14 +127,30 @@ def get_heart_rate():
     input('Press a key to continue')
 
 
-def heart_logger(data):
-    print('Realtime heart BPM:', data)
+def heart_logger(data, fd):
+    time = datetime.now().strftime(args.format)
+    print(f'Realtime ({time}) heart BPM: {data}')
+    fd.writerow([time, data])
 
 
 # Needs Auth
 def get_realtime():
-    band.start_heart_rate_realtime(heart_measure_callback=heart_logger)
-    input('Press Enter to continue')
+    name = f"{args.csv}-{args.mac}"
+    if isfile(name + ".csv"):
+        num = 0
+        while isfile(f"{name}-{num:04}.csv"):
+            num += 1
+        name = f"{name}-{num:04}"
+    with open(f"{name}.csv", "w") as fd:
+        writer = csv.writer(fd)
+        writer.writerow(['time', 'bpm'])
+        try:
+            band.start_heart_rate_realtime(
+                heart_measure_callback=heart_logger, csv_fd=writer)
+        except KeyboardInterrupt:
+            print("Interrupt from keyboard")
+        except:
+            print("NIOP")
 
 
 # Needs Auth
@@ -258,37 +282,43 @@ if __name__ == "__main__":
             print("\nExit.")
             exit()
 
-    menu = CursesMenu("MIBand4", "Features marked with @ require Auth Key")
-    info_item = FunctionItem("Get general info of the device", general_info)
-    call_item = FunctionItem(
-        "Send Mail/ Call/ Missed Call/ Message", send_notif)
-    set_music_item = FunctionItem(
-        "Set the band's music and receive music controls", set_music)
-    lost_device_item = FunctionItem(
-        "Listen for Device Lost notifications", lost_device)
-    steps_item = FunctionItem(
-        "@ Get Steps/Meters/Calories/Fat Burned", get_step_count)
-    single_heart_rate_item = FunctionItem("@ Get Heart Rate", get_heart_rate)
-    real_time_heart_rate_item = FunctionItem(
-        "@ Get realtime heart rate data", get_realtime)
-    get_band_activity_data_item = FunctionItem(
-        "@ Get activity logs for a day", get_activity_logs)
-    set_time_item = FunctionItem(
-        "@ Set the band's time to system time", set_time)
-    update_watchface_item = FunctionItem(
-        "@ Update Watchface", update_watchface)
-    dfu_update_item = FunctionItem(
-        "@ Restore/Update Firmware", restore_firmware)
+    if (args.onlyheart):
+        print("Heartonly is Activated")
+        get_realtime()
+    else:
+        menu = CursesMenu("MIBand4", "Features marked with @ require Auth Key")
+        info_item = FunctionItem(
+            "Get general info of the device", general_info)
+        call_item = FunctionItem(
+            "Send Mail/ Call/ Missed Call/ Message", send_notif)
+        set_music_item = FunctionItem(
+            "Set the band's music and receive music controls", set_music)
+        lost_device_item = FunctionItem(
+            "Listen for Device Lost notifications", lost_device)
+        steps_item = FunctionItem(
+            "@ Get Steps/Meters/Calories/Fat Burned", get_step_count)
+        single_heart_rate_item = FunctionItem(
+            "@ Get Heart Rate", get_heart_rate)
+        real_time_heart_rate_item = FunctionItem(
+            "@ Get realtime heart rate data", get_realtime)
+        get_band_activity_data_item = FunctionItem(
+            "@ Get activity logs for a day", get_activity_logs)
+        set_time_item = FunctionItem(
+            "@ Set the band's time to system time", set_time)
+        update_watchface_item = FunctionItem(
+            "@ Update Watchface", update_watchface)
+        dfu_update_item = FunctionItem(
+            "@ Restore/Update Firmware", restore_firmware)
 
-    menu.append_item(info_item)
-    menu.append_item(steps_item)
-    menu.append_item(call_item)
-    menu.append_item(single_heart_rate_item)
-    menu.append_item(real_time_heart_rate_item)
-    menu.append_item(get_band_activity_data_item)
-    menu.append_item(set_time_item)
-    menu.append_item(set_music_item)
-    menu.append_item(lost_device_item)
-    menu.append_item(update_watchface_item)
-    menu.append_item(dfu_update_item)
-    menu.show()
+        menu.append_item(info_item)
+        menu.append_item(steps_item)
+        menu.append_item(call_item)
+        menu.append_item(single_heart_rate_item)
+        menu.append_item(real_time_heart_rate_item)
+        menu.append_item(get_band_activity_data_item)
+        menu.append_item(set_time_item)
+        menu.append_item(set_music_item)
+        menu.append_item(lost_device_item)
+        menu.append_item(update_watchface_item)
+        menu.append_item(dfu_update_item)
+        menu.show()

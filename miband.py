@@ -164,6 +164,7 @@ class miband(Peripheral):
         self.accel_raw_callback = None
         self.auth_key = key
         self.queue = Queue()
+        self.fd = None
         self.svc_1 = self.getServiceByUUID(UUIDS.SERVICE_MIBAND1)
         self.svc_2 = self.getServiceByUUID(UUIDS.SERVICE_MIBAND2)
         self.svc_heart = self.getServiceByUUID(UUIDS.SERVICE_HEART_RATE)
@@ -303,7 +304,8 @@ class miband(Peripheral):
                 res = self.queue.get(False)
                 _type = res[0]
                 if self.heart_measure_callback and _type == QUEUE_TYPES.HEART:
-                    self.heart_measure_callback(struct.unpack('bb', res[1])[1])
+                    self.heart_measure_callback(
+                        struct.unpack('bb', res[1])[1], self.fd)
                 elif self.heart_raw_callback and _type == QUEUE_TYPES.RAW_HEART:
                     self.heart_raw_callback(self._parse_raw_heart(res[1]))
                 elif self.accel_raw_callback and _type == QUEUE_TYPES.RAW_ACCEL:
@@ -533,7 +535,7 @@ class miband(Peripheral):
         rate = struct.unpack('bb', res)[1]
         return rate
 
-    def start_heart_rate_realtime(self, heart_measure_callback):
+    def start_heart_rate_realtime(self, heart_measure_callback, csv_fd):
         char_m = self.svc_heart.getCharacteristics(
             UUIDS.CHARACTERISTIC_HEART_RATE_MEASURE)[0]
         char_d = char_m.getDescriptors(
@@ -542,6 +544,7 @@ class miband(Peripheral):
             UUIDS.CHARACTERISTIC_HEART_RATE_CONTROL)[0]
 
         self.heart_measure_callback = heart_measure_callback
+        self.fd = csv_fd
 
         # stop heart monitor continues & manual
         char_ctrl.write(b'\x15\x02\x00', True)
@@ -633,8 +636,7 @@ class miband(Peripheral):
             chunk += b'\x00'
             chunk += bytes([flag | type])
             chunk += bytes([count & 0xff])
-            chunk += data[(count * MAX_CHUNKLENGTH)
-                           :(count * MAX_CHUNKLENGTH)+copybytes]
+            chunk += data[(count * MAX_CHUNKLENGTH)                          :(count * MAX_CHUNKLENGTH)+copybytes]
             count += 1
             self._char_chunked.write(chunk)
             remaining -= copybytes

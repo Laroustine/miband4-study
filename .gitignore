@@ -140,3 +140,10 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+
+# CSV
+*.csv
+
+# Files
+auth_key.txt
+mac.txt
